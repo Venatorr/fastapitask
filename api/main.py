@@ -1,8 +1,10 @@
 from typing import List
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Response
 from sqlalchemy.orm import Session
 from . import crud, models, schemas
 from .database import SessionLocal, engine
+from dicttoxml import dicttoxml
+from .utils import model2dict
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -33,12 +35,23 @@ def read_smartphones(skip: int = 0,
     return smartphones
 
 
-@app.get("/smartphones/{smartphone_id}", response_model=schemas.Smartphone)
+@app.get("/smartphones/{smartphone_id}/json",
+         response_model=schemas.Smartphone)
 def read_smartphone(smartphone_id: int, db: Session = Depends(get_db)):
     db_smartphone = crud.get_smartphone(db, smartphone_id=smartphone_id)
     if db_smartphone is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_smartphone
+
+
+@app.get("/smartphones/{smartphone_id}/xml",
+         response_model=schemas.Smartphone)
+def read_smartphone(smartphone_id: int, db: Session = Depends(get_db)):
+    db_smartphone = crud.get_smartphone(db, smartphone_id=smartphone_id)
+    if db_smartphone is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return Response(content=dicttoxml(model2dict(db_smartphone)),
+                    media_type='application/xml')
 
 
 @app.put("/smartphones/{smartphone_id}", response_model=schemas.Smartphone)
